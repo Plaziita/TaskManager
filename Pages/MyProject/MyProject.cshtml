@@ -1,0 +1,501 @@
+@page "{id:int}"
+@model TaskManager.Pages.MyProject.MyProjectModel
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.Encodings.Web
+@attribute [Authorize]
+@{ Layout = "_Layout"; } 
+@{
+    ViewData["Title"] = Model.Current?.Name ?? "Proyecto";
+}
+
+<main class="h-screen overflow-hidden">
+    <div class="flex items-center justify-between mb-6 gap-3 px-8 py-4 border-b border-slate-200 dark:border-slate-800 dark:bg-background-dark/50">
+        <div>
+            <h1 class="text-3xl font-black tracking-tight">@Model.Current?.Name</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">@Model.Current?.Description</p>
+            <div class="mt-2 text-xs text-slate-500 flex gap-4">
+                <span>Created: @Model.Current?.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</span>
+                @if (Model.Current?.UpdatedAt is not null)
+                {
+                    <span>Updated: @Model.Current!.UpdatedAt!.Value.ToLocalTime().ToString("dd MMM yyyy")</span>
+                }
+                @if (Model.Current?.StartDate is not null)
+                {
+                    <span>Start date: @Model.Current!.StartDate!.Value.ToLocalTime().ToString("dd MMM yyyy")</span>
+                }
+                @if (Model.Current?.DueDate is not null)
+                {
+                    <span>Finish date: @Model.Current!.DueDate!.Value.ToLocalTime().ToString("dd MMM yyyy")</span>
+                }
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a asp-page="/AllProjects/AllProjects"
+               class="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
+                <span class="material-symbols-outlined text-sm align-middle">arrow_back</span>
+                Back
+            </a>
+
+            <button type="button"
+                    onclick="openEditProjectModal(
+                      @Model.Current!.Id,
+                      '@JavaScriptEncoder.Default.Encode(Model.Current!.Name)',
+                      '@JavaScriptEncoder.Default.Encode(Model.Current!.Description ?? string.Empty)',
+                      '@Model.Current!.StartDate?.ToString("yyyy-MM-dd")',
+                      '@Model.Current!.DueDate?.ToString("yyyy-MM-dd")'
+                    )"
+                    class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                <span class="material-symbols-outlined align-middle">edit</span>
+                Edit
+            </button>
+
+            <button type="button"
+                    onclick="openDeleteModal(@Model.Current!.Id)"
+                    class="px-3 py-2 text-sm rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                <span class="material-symbols-outlined align-middle">delete</span>
+                Delete
+            </button>
+        </div>
+    </div>
+
+    @{
+        var total = Model.Current?.Tasks?.Count ?? 0;
+        var done = Model.Current?.Tasks?.Count(t => t.Status == "Done") ?? 0;
+        var inProgress = Model.Current?.Tasks?.Count(t => t.Status == "In Progress") ?? 0;
+        var todo = total - done - inProgress;
+        var percentage = total == 0 ? 0 : (int)Math.Round((double)done / total * 100);
+    }
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl">
+            <p class="text-slate-500 text-xs">Total tasks</p>
+            <p class="text-2xl font-bold">@total</p>
+        </div>
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl">
+            <p class="text-slate-500 text-xs">Completed</p>
+            <p class="text-2xl font-bold text-emerald-500">@done</p>
+        </div>
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl">
+            <p class="text-slate-500 text-xs">In progress</p>
+            <p class="text-2xl font-bold text-amber-500">@inProgress</p>
+        </div>
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl">
+            <div class="flex items-center justify-center gap-3">
+                <div class="relative size-12 flex items-center justify-center">
+                    <svg class="size-12 transform -rotate-90" viewBox="0 0 48 48">
+                        <circle class="text-slate-100 dark:text-slate-800" cx="24" cy="24" r="20" fill="transparent" stroke="currentColor" stroke-width="4"></circle>
+                        @{
+                            var circumference = 2 * Math.PI * 20;
+                            var dashoffset = (100 - percentage) / 100.0 * circumference;
+                        }
+                        <circle class="text-primary" cx="24" cy="24" r="20" fill="transparent"
+                                stroke="currentColor" stroke-width="4"
+                                stroke-dasharray="@circumference"
+                                stroke-dashoffset="@dashoffset">
+                        </circle>
+                    </svg>
+                    <span class="absolute text-[10px] font-bold">@percentage%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <section class="lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">Tasks</h2>
+                <div class="flex items-center gap-4">
+                    <button type="button"
+                            onclick="openCreateTaskModal(@Model.Current!.Id)"
+                            class="px-3 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90">
+                        <span class="material-symbols-outlined align-middle text-sm">add</span>
+                        Add Task
+                    </button>
+                    <a class="text-primary text-sm font-bold hover:underline" href="#">Look board</a>
+                </div>
+            </div>
+
+            @if (TempData["Error"] is string terr && !string.IsNullOrWhiteSpace(terr))
+            {
+                <div class="rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50/60 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-3 py-2 text-sm">
+                    @terr
+                </div>
+            }
+            @if (TempData["Success"] is string tok && !string.IsNullOrWhiteSpace(tok))
+            {
+                <div class="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-3 py-2 text-sm">
+                    @tok
+                </div>
+            }
+            @if (TempData["Info"] is string tinfo && !string.IsNullOrWhiteSpace(tinfo))
+            {
+                <div class="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 px-3 py-2 text-sm">
+                    @tinfo
+                </div>
+            }
+
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800">
+                @if (Model.Current?.Tasks is null || !Model.Current.Tasks.Any())
+                {
+                    <div class="p-6 text-sm text-slate-500">There's no task yet.</div>
+                }
+                else
+                {
+                    foreach (var t in Model.Current.Tasks.OrderByDescending(x => x.CreatedAt))
+                    {
+                        <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined @(t.Status == "Done" ? "text-emerald-500" : t.Status == "In Progress" ? "text-amber-500" : "text-slate-400")">
+                                    @(t.Status == "Done" ? "check_circle" : t.Status == "In Progress" ? "sync" : "radio_button_unchecked")
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold">@t.Title</p>
+                                    <p class="text-[10px] text-slate-500 uppercase tracking-tighter">
+                                        @t.Id • @t.Status
+                                        @if (t.AssignedUser is not null)
+                                        {
+                                            <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px]">
+                                                <span class="material-symbols-outlined text-[12px] align-middle">person</span>
+                                                @t.AssignedUser.UserName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px]">
+                                                <span class="material-symbols-outlined text-[12px] align-middle">person_off</span>
+                                                Unassigned
+                                            </span>
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button type="button"
+                                        class="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                                        onclick="openEditTaskModal(
+                                          @Model.Current!.Id,
+                                          @t.Id,
+                                          '@JavaScriptEncoder.Default.Encode(t.Title ?? string.Empty)',
+                                          '@JavaScriptEncoder.Default.Encode(t.Status ?? "Open")',
+                                          '@JavaScriptEncoder.Default.Encode(t.AssignedUserId ?? string.Empty)'
+                                        )">
+                                    <span class="material-symbols-outlined align-middle text-sm">edit</span>
+                                </button>
+
+                                <button type="button"
+                                        class="px-3 py-1.5 text-xs rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+                                        onclick="openDeleteTaskModal(@Model.Current!.Id, @t.Id)">
+                                    <span class="material-symbols-outlined align-middle text-sm">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+
+        <aside class="space-y-6">
+            <div>
+                <div class="flex items-center gap-4 justify-between mb-3">
+                    <h3 class="text-xl font-bold">Members</h3>
+
+                    <button type="button"
+                            onclick="openAddMemberModal()"
+                            class="px-3 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90">
+                        <span class="material-symbols-outlined align-middle text-sm">person_add</span>
+                        Add Member
+                    </button>
+                </div>
+
+                <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                    @if (Model.Current?.Users is null || !Model.Current.Users.Any())
+                    {
+                        <p class="text-sm text-slate-500">Sin miembros asignados.</p>
+                    }
+                    else
+                    {
+                        <div class="flex flex-col gap-2">
+                            @foreach (var u in Model.Current.Users)
+                            {
+                                <div class="flex items-center gap-3 py-3 justify-between">
+                                    <div class="text-sm flex items-center gap-3">
+                                        <div class="size-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[12px] font-bold">
+                                            @u.UserName?.Substring(0,1).ToUpper()
+                                        </div>
+                                        <p class="font-semibold">@u.UserName</p>
+                                    </div>
+                                    
+                                    <form method="post" asp-page-handler="RemoveMember" asp-route-id="@Model.Current!.Id" class="inline">
+                                        <input type="hidden" name="userId" value="@u.Id" />
+                                        <button type="submit" class="px-3 py-2 text-sm rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                                            <span class="material-symbols-outlined align-middle">delete</span>
+                                            Remove
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<div id="deleteModal" 
+     class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+     role="dialog" aria-modal="true">
+  <div class="dark:bg-slate-900 p-6 rounded-xl w-80 border border-slate-200 dark:border-slate-700">
+    <h2 class="text-lg font-bold mb-4">¿Eliminar proyecto?</h2>
+    <p class="text-sm text-slate-500 mb-6">
+        ¿Seguro que quieres eliminar este proyecto?
+    </p>
+
+    <form method="post" asp-page-handler="DeleteProject" asp-antiforgery="true">
+        <input id="deleteProjectId" type="hidden" name="projectId" />
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="closeDeleteModal()" 
+                    class="px-3 py-1.5 text-sm rounded-lg bg-slate-200 dark:bg-slate-700">
+                Cancelar
+            </button>
+
+            <button type="submit" 
+                    class="px-3 py-1.5 text-sm rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                Eliminar
+            </button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<div id="editProjectModal"
+     class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+     role="dialog" aria-modal="true">
+  <div class="dark:bg-slate-900 p-6 rounded-xl w-[32rem] border border-slate-200 dark:border-slate-700">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold">Editar proyecto</h2>
+      <button type="button" onclick="closeEditProjectModal()"
+              class="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-800">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form method="post" asp-page-handler="EditProject" asp-antiforgery="true">
+      <input id="editProject_ProjectId" type="hidden" name="projectId" />
+
+      <label class="block text-sm font-semibold mb-1" for="editProject_Name">Nombre</label>
+      <input id="editProject_Name" name="name" type="text" required
+             class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2 mb-4" />
+
+      <label class="block text-sm font-semibold mb-1" for="editProject_Description">Descripción</label>
+      <textarea id="editProject_Description" name="description"
+                class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2 mb-4"></textarea>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-semibold mb-1" for="editProject_StartDate">Fecha inicio</label>
+          <input id="editProject_StartDate" name="startDate" type="date"
+                 class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1" for="editProject_DueDate">Fecha fin</label>
+          <input id="editProject_DueDate" name="dueDate" type="date"
+                 class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeEditProjectModal()"
+                class="px-3 py-1.5 text-sm rounded-lg bg-slate-200 dark:bg-slate-700">Cancelar</button>
+        <button type="submit"
+                class="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="deleteTaskModal" 
+     class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+     role="dialog" aria-modal="true">
+
+  <div class="dark:bg-slate-900 p-6 rounded-xl w-80 border border-slate-200 dark:border-slate-700">
+    <h2 class="text-lg font-bold mb-4">¿Eliminar tarea?</h2>
+    <p class="text-sm text-slate-500 mb-6">
+      ¿Seguro que quieres eliminar esta tarea? Esta acción no se puede deshacer.
+    </p>
+
+    <form method="post" asp-page-handler="DeleteTask" asp-antiforgery="true">
+        <input id="deleteTask_ProjectId" type="hidden" name="projectId" />
+        <input id="deleteTask_TaskId" type="hidden" name="taskId" />
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="closeDeleteTaskModal()" 
+                    class="px-3 py-1.5 text-sm rounded-lg bg-slate-200 dark:bg-slate-700">
+                Cancel
+            </button>
+
+            <button type="submit" 
+                    class="px-3 py-1.5 text-sm rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                Delete
+            </button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<div id="editTaskModal"
+     class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+     role="dialog" aria-modal="true">
+  <div class="dark:bg-slate-900 p-6 rounded-xl w-[32rem] border border-slate-200 dark:border-slate-700">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold">Editar tarea</h2>
+      <button type="button" onclick="closeEditTaskModal()"
+              class="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-800">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form method="post" asp-page-handler="EditTask" asp-antiforgery="true">
+      <input id="editTask_ProjectId" type="hidden" name="projectId" />
+      <input id="editTask_TaskId" type="hidden" name="taskId" />
+
+      <label class="block text-sm font-semibold mb-1" for="editTask_Title">Título</label>
+      <input class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2 mb-4" id="editTask_Title" name="title" type="text" required
+            e-700 dark:bg-slate-900 px-3 py-2 mb-4" />
+
+      <label class="block text-sm font-semibold mb-1" for="editTask_Status">Estado</label>
+      <select id="editTask_Status" name="status"
+              class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2 mb-4">
+        <option value="Open">Open</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Blocked">Blocked</option>
+        <option value="Done">Done</option>
+      </select>
+
+      <label class="block text-sm font-semibold mb-1" for="editTask_AssignedUserId">Asignar a</label>
+      <select id="editTask_AssignedUserId" name="assignedUserId"
+              class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2 mb-6">
+        <option value="">(Unassigned)</option>
+        @if (Model.Current?.Users is not null)
+        {
+            foreach (var u in Model.Current.Users)
+            {
+                <option value="@u.Id">@u.UserName</option>
+            }
+        }
+      </select>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeEditTaskModal()"
+                class="px-3 py-1.5 text-sm rounded-lg bg-slate-200 dark:bg-slate-700">Cancelar</button>
+        <button type="submit"
+                class="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="add-member-overlay"
+     class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-40"></div>
+
+<div id="add-member-modal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4"
+     role="dialog" aria-modal="true">
+    <div class="w-full max-w-lg rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 shadow-xl">
+        <div class="flex justify-between items-center px-6 py-4 border-b dark:border-slate-700">
+            <h2 class="text-lg font-bold">Add member by email</h2>
+            <button type="button"
+                    class="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+                    onclick="closeAddMemberModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="px-6 py-4">
+            <form method="post"
+                  asp-page-handler="AddMember"
+                  asp-route-id="@Model.Current!.Id"
+                  asp-antiforgery="true">
+
+                <label class="block text-sm font-semibold mb-1" for="memberEmail">Email</label>
+                <input id="memberEmail" name="email" type="email" required
+                       class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2 mb-4"
+                       placeholder="user@contoso.com" />
+
+                <div class="flex justify-end gap-3">
+                    <button type="button"
+                            class="px-4 py-2 rounded-lg border dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800"
+                            onclick="closeAddMemberModal()">Cancel</button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+  function openAddMemberModal() {
+    document.getElementById('add-member-overlay')?.classList.remove('hidden');
+    document.getElementById('add-member-modal')?.classList.remove('hidden');
+    setTimeout(() => document.getElementById('memberEmail')?.focus(), 50);
+  }
+  function closeAddMemberModal() {
+    document.getElementById('add-member-overlay')?.classList.add('hidden');
+    document.getElementById('add-member-modal')?.classList.add('hidden');
+  }
+
+  function openDeleteModal(id) {
+    document.getElementById("deleteProjectId").value = id;
+    document.getElementById("deleteModal").classList.remove("hidden");
+  }
+  function closeDeleteModal() {
+    document.getElementById("deleteModal").classList.add("hidden");
+  }
+
+  function openEditProjectModal(projectId, name, description, startDate, dueDate) {
+    document.getElementById("editProject_ProjectId").value = projectId;
+    document.getElementById("editProject_Name").value = name || "";
+    document.getElementById("editProject_Description").value = description || "";
+    document.getElementById("editProject_StartDate").value = startDate || "";
+    document.getElementById("editProject_DueDate").value = dueDate || "";
+    document.getElementById("editProjectModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("editProject_Name")?.focus(), 50);
+  }
+  function closeEditProjectModal() {
+    document.getElementById("editProjectModal").classList.add("hidden");
+  }
+
+  function openDeleteTaskModal(projectId, taskId) {
+    document.getElementById("deleteTask_ProjectId").value = projectId;
+    document.getElementById("deleteTask_TaskId").value = taskId;
+    document.getElementById("deleteTaskModal").classList.remove("hidden");
+  }
+  function closeDeleteTaskModal() {
+    document.getElementById("deleteTaskModal").classList.add("hidden");
+  }
+
+  function openEditTaskModal(projectId, taskId, title, status, assignedUserId) {
+    document.getElementById("editTask_ProjectId").value = projectId;
+    document.getElementById("editTask_TaskId").value = taskId;
+    document.getElementById("editTask_Title").value = title || "";
+    document.getElementById("editTask_Status").value = status || "Open";
+    document.getElementById("editTask_AssignedUserId").value = assignedUserId || "";
+    document.getElementById("editTaskModal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("editTask_Title")?.focus(), 50);
+  }
+  function closeEditTaskModal() {
+    document.getElementById("editTaskModal").classList.add("hidden");
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    closeAddMemberModal();
+    closeDeleteModal();
+    closeDeleteTaskModal();
+    closeEditTaskModal();
+    closeEditProjectModal();
+  });
+</script>
+}

@@ -1,0 +1,67 @@
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<div id="create-overlay"
+     class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-40"></div>
+
+<div id="create-modal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+
+    <div class="w-full max-w-lg rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 shadow-xl">
+
+        <div class="flex justify-between items-center px-6 py-4 border-b dark:border-slate-700">
+            <h2 class="text-lg font-bold">Create Project</h2>
+            <button id="btn-close-modal" class="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-800">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="px-6 py-4">
+
+            <form method="post" asp-page="/CreateProject/CreateProject" asp-antiforgery="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ReturnUrl"value="@($"{Context.Request.Path}{Context.Request.QueryString}")" />
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-1">Task title</label>
+                    <input name="Title"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" required />
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-1">Description</label>
+                    <textarea name="Description"
+                              class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Start Date</label>
+                        <input type="date" name="StartDate"
+                               class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Due Date</label>
+                        <input type="date" name="DueDate"
+                               class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" />
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-4">
+                    <button type="button" id="btn-cancel-modal"
+                            class="px-4 py-2 rounded-lg border dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800">
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                        Create
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+

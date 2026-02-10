@@ -1,0 +1,143 @@
+@page "{paginator:int?}"
+@model TaskManager.Pages.AllProjects.AllProjectsModel
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@{ Layout = "_Layout"; } 
+@{
+    ViewData["Title"] = "AllProjects";
+}
+
+<div class="flex min-h-screen">
+    <main class="flex-1 flex flex-col min-w-0">
+        <div class="border-b border-slate-200 dark:border-slate-800 dark:bg-background-dark/50">
+            <div class="flex flex-wrap items-end justify-between gap-3 px-8 py-4">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight">All Projects</h1>
+                    <p class="text-slate-500 mt-1">Look fast all your projects</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 lg:px-10 py-4 flex flex-col md:flex-row gap-4 items-center border-b border-slate-200 dark:border-slate-800">
+            <div class="w-full md:max-w-sm">
+                <div class="flex h-10 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <form method="get" class="w-full md:max-w-sm">
+                        <div class="flex h-10 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center px-3 text-slate-500">
+                                <span class="material-symbols-outlined text-[20px]">search</span>
+                            </div>
+
+                            <input
+                            type="text"
+                            name="search"
+                            value="@Model.Search"
+                            placeholder="Search projects by name"
+                            class="w-full bg-transparent px-3 text-sm focus:outline-none"
+                            onkeyup="debouncedSubmit()" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 lg:px-10 flex-1 overflow-auto py-6">
+
+            <div class="dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+
+                    <thead>
+                    <tr class="bg-slate-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+                        <th class="px-4 py-3 text-xs font-bold uppercase text-slate-500">Name</th>
+                        <th class="px-4 py-3 text-xs font-bold uppercase text-slate-500">Key</th>
+                        <th class="px-4 py-3 text-xs font-bold uppercase text-slate-500">Lead</th>
+                        <th class="px-4 py-3 text-xs font-bold uppercase text-slate-500">Progress</th>
+                    </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+
+                    @foreach (var project in Model.Projects)
+                    {
+                        var totalTasks = project.Tasks?.Count ?? 0;
+                        var completed = project.Tasks?.Count(t => t.Status == "Done") ?? 0;
+                        var percent = totalTasks == 0 ? 0 : (int)((double)completed / totalTasks * 100);
+
+                        <tr class="hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                            onclick="location.href='@Url.Page("/MyProject/MyProject", new { id = project.Id })'">
+                            
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-8 rounded bg-primary/10 text-primary font-bold flex items-center justify-center text-xs">
+                                        @project.Name[..Math.Min(2, project.Name.Length)].ToUpper()
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold">@project.Name</p>
+                                        <p class="text-[10px] text-slate-500">
+                                            Created @project.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                        </p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="px-4 py-4 text-sm text-slate-500 uppercase">
+                                PRJ-@project.Id
+                            </td>
+
+                            <td class="px-4 py-4">
+                                @if (project.Users?.Any() == true)
+                                {
+                                    var lead = project.Users.First();
+                                    <div class="flex items-center gap-2">
+                                        <div class="size-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                                            @lead.UserName?[0]
+                                        </div>
+                                        <span class="text-sm">@lead.UserName</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-slate-500">—</span>
+                                }
+                            </td>
+
+                            <td class="px-4 py-4">
+                                <div class="flex flex-col gap-1 max-w-[140px]">
+                                    <span class="text-[10px] font-bold text-slate-500">@percent%</span>
+                                    <div class="h-1.5 w-full bg-slate-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-primary" style="width:@percent%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+
+                    </tbody>
+                </table>
+                <div class="p-4 bg-background-light/30 dark:bg-gray-800/30 flex items-center justify-between border-t border-[#f0f2f4] dark:border-gray-800">                 
+                    <span class="text-xs text-[#616f89] font-medium">
+                        Showing @(((Model.CurrentPage - 1) * 5) + 1)
+                        to @(Math.Min(Model.CurrentPage * 5, Model.TotalProjects))
+                        of @Model.TotalProjects projects
+                    </span>
+                    <div class="flex gap-2">
+                        <a asp-page="./AllProjects"
+                        asp-route-paginator="@(Model.CurrentPage - 1)"
+                        asp-route-search="@Model.Search"
+                        class="p-1.5 rounded border border-gray-200 dark:border-gray-700 text-[#616f89] hover:bg-white dark:hover:bg-gray-700
+                                @(Model.HasPrevious ? "" : "pointer-events-none opacity-50")">
+                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                        </a>
+
+                        <a asp-page="./AllProjects"
+                        asp-route-paginator="@(Model.CurrentPage + 1)"
+                        asp-route-search="@Model.Search"
+                        class="p-1.5 rounded border border-gray-200 dark:border-gray-700 text-[#616f89] hover:bg-white dark:hover:bg-gray-700
+                                @(Model.HasNext ? "" : "pointer-events-none opacity-50")">
+                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+

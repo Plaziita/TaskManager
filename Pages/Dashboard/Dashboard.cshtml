@@ -1,0 +1,248 @@
+@page
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@{
+    Layout = "_Layout";
+}
+@model DashboardModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<script>
+    function openDeleteModal(id) {
+        document.getElementById("deleteProjectId").value = id;
+        document.getElementById("deleteModal").classList.remove("hidden");
+    }
+
+    function closeDeleteModal() {
+        document.getElementById("deleteModal").classList.add("hidden");
+    }
+</script>
+
+<div class="flex min-h-screen">
+    <main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+        <div class="border-b border-slate-200 dark:border-slate-800 dark:bg-background-dark/50">
+            <div class="flex flex-wrap items-end justify-between gap-3 px-8 py-4">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+                    <p class="text-slate-500 dark:text-slate-400 mt-1">Look fast your last projects and issues.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 my-4">
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+                <div class="flex justify-between items-start">
+                    <p class="text-slate-500 text-sm font-medium">Total Active Tasks</p>
+                    <span class="material-symbols-outlined text-primary">assignment</span>
+                </div>
+                <p class="text-3xl font-bold">@Model.InProgressTask</p>
+            </div>
+
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+                <div class="flex justify-between items-start">
+                    <p class="text-slate-500 text-sm font-medium">Overdue Items</p>
+                    <span class="material-symbols-outlined text-rose-500">priority_high</span>
+                </div>
+                <p class="text-3xl font-bold">@Model.OverdueTask</p>
+            </div>
+
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl flex flex-col gap-2">
+                <div class="flex justify-between items-start">
+                    <p class="text-slate-500 text-sm font-medium">Completed (Task)</p>
+                    <span class="material-symbols-outlined text-emerald-500">check_circle</span>
+                </div>
+                <p class="text-3xl font-bold">@Model.DoneTask</p>
+                <div class="flex items-center gap-1 text-emerald-500 text-sm font-medium">
+                    <span class="material-symbols-outlined text-xs">trending_up</span>
+                    <span>+@Model.CompletationRate% completion rate</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold">Active Projects</h2>
+                    <button class="text-primary text-sm font-bold hover:underline" onclick="location.href='@Url.Page(pageName:"/AllProjects/AllProjects")'">View All</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @foreach (var project in Model.Projects)
+                    {
+                        var totalTasks = project.Tasks?.Count ?? 0;
+                        var completed = project.Tasks?.Count(t => t.Status == "Done") ?? 0;
+                        var percentage = totalTasks == 0 ? 0 : (int)((double)completed / totalTasks * 100);
+
+                        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl hover:border-primary transition-all group">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="size-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-primary cursor-pointer"
+                                     onclick="location.href='@Url.Page("/MyProject/MyProject", new { id = project.Id })'">
+                                    <span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">folder</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        onclick="openDeleteModal(@project.Id)"
+                                        class="material-symbols-outlined text-slate-400 hover:text-rose-500 transition-colors size-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg items-center justify-center">
+                                        delete
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h3 class="font-bold text-lg mb-1">@project.Name</h3>
+                            <p class="text-slate-500 text-xs mb-6 uppercase">@project.Description</p>
+
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="relative size-12 flex items-center justify-center">
+                                    <svg class="size-12 transform -rotate-90">
+                                        <circle class="text-slate-100 dark:text-slate-800" cx="24" cy="24" r="20" fill="transparent" stroke="currentColor" stroke-width="4"></circle>
+                                        <circle class="text-primary" cx="24" cy="24" r="20" fill="transparent"
+                                                stroke="currentColor" stroke-width="4"
+                                                stroke-dasharray="125.6"
+                                                stroke-dashoffset="@((100 - percentage) * 1.256)">
+                                        </circle>
+                                    </svg>
+                                    <span class="absolute text-[10px] font-bold">@percentage%</span>
+                                </div>
+
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="text-slate-500">Progress</span>
+                                        <span class="font-bold">@completed/@totalTasks Tasks</span>
+                                    </div>
+                                    <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div class="bg-primary h-full" style="width:@percentage%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <div class="flex -space-x-2">
+                                    @if (project.Users != null)
+                                    {
+                                        foreach (var u in project.Users.Take(3))
+                                        {
+                                            <div class="size-7 rounded-full border-2 border-white dark:border-slate-900 bg-slate-600 flex items-center justify-center text-[10px] uppercase font-bold">
+                                                @u.UserName?[0]
+                                            </div>
+                                        }
+
+                                        if (project.Users.Count > 3)
+                                        {
+                                            <div class="size-7 rounded-full border-2 border-white dark:border-slate-900 bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                                                +@(project.Users.Count - 3)
+                                            </div>
+                                        }
+                                    }
+                                </div>
+
+                                <span class="text-xs text-slate-500 font-medium">
+                                    @(project.UpdatedAt?.ToShortDateString() ?? project.CreatedAt.ToShortDateString())
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden mt-8">
+                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <h3 class="font-bold">Recent Board Task</h3>
+                        <button class="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-primary transition-colors" onclick="location.href='@Url.Page(pageName:"/Board/Board")'">
+                            Full Board <span class="material-symbols-outlined text-sm">open_in_new</span>
+                        </button>
+                    </div>
+
+                    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @if (Model.RecentTasks?.Any() == true)
+                        {
+                            foreach (var t in Model.RecentTasks)
+                            {
+                                var statusIcon = t.Status switch
+                                {
+                                    "Done" => "check_circle",
+                                    "In Progress" => "sync",
+                                    "Open" => "check_box_outline_blank",
+                                    "To Do" => "check_box_outline_blank",
+                                    _ => "check_box_outline_blank"
+                                };
+                                var statusColor = t.Status switch
+                                {
+                                    "Done" => "text-emerald-500",
+                                    "In Progress" => "text-amber-500",
+                                    _ => "text-primary"
+                                };
+
+                                string priorityText = t.Priority switch
+                                {
+                                    1 => "High",
+                                    2 => "Medium",
+                                    3 => "Low",
+                                    _ => "Low"
+                                };
+                                string priorityBadgeClass = t.Priority switch
+                                {
+                                    1 => "bg-rose-100 text-rose-600 dark:bg-rose-900/30",
+                                    2 => "bg-blue-100 text-blue-600 dark:bg-blue-900/30",
+                                    3 => "bg-slate-100 text-slate-500 dark:bg-slate-800",
+                                    _ => "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                                };
+
+                                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer group"
+                                     onclick="location.href='@Url.Page("/Tasks/Details", new { id = t.Id })'">
+                                    <div class="flex items-center gap-4">
+                                        <span class="material-symbols-outlined @statusColor group-hover:scale-110 transition-transform">@statusIcon</span>
+                                        <div>
+                                            <p class="text-sm font-semibold">@t.Title</p>
+                                            <p class="text-[10px] text-slate-500 uppercase tracking-tighter">
+                                                @($"{t.Project?.Name ?? "Project"} • {(t.Status?.ToUpperInvariant() ?? "OPEN")}")
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <span class="px-2 py-0.5 rounded @priorityBadgeClass text-[10px] font-bold">@priorityText</span>
+                                        <span class="text-xs text-slate-400">
+                                            @(t.CreatedAt.ToString("MMM dd"))
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="p-4 text-sm text-slate-500">
+                                No tienes tareas recientes asignadas.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        <div id="deleteModal"
+             class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="dark:bg-slate-900 p-6 rounded-xl w-80 border border-slate-200 dark:border-slate-700">
+                <h2 class="text-lg font-bold mb-4">¿Eliminar proyecto?</h2>
+                <p class="text-sm text-slate-500 mb-6">
+                    ¿Seguro que quieres eliminar este proyecto?
+                </p>
+
+                <form method="post" asp-page-handler="DeleteProject">
+                    <input id="deleteProjectId" type="hidden" name="projectId" />
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeDeleteModal()"
+                                class="px-3 py-1.5 text-sm rounded-lg bg-slate-200 dark:bg-slate-700">
+                            Cancelar
+                        </button>
+
+                        <button type="submit"
+                                class="px-3 py-1.5 text-sm rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                            Eliminar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>

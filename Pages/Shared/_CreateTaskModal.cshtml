@@ -1,0 +1,115 @@
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<div id="create-task-overlay"
+     class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-40"></div>
+
+<div id="create-task-modal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+
+    <div class="w-full max-w-lg rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 shadow-xl">
+
+        <div class="flex justify-between items-center px-6 py-4 border-b dark:border-slate-700">
+            <h2 class="text-lg font-bold">Create Task</h2>
+            <button type="button" class="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+                    onclick="closeCreateTaskModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="px-6 py-4">
+            <form method="post"
+                  asp-page="/CreateTask/CreateTask"
+                  asp-antiforgery="true"
+                  id="createTaskForm">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-1">Title</label>
+                    <input name="Title" required
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-1">Description</label>
+                    <textarea name="Description"
+                              class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2"></textarea>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Due date</label>
+                        <input type="date" name="DueDate"
+                               class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Priority</label>
+                        <select name="Priority"
+                                class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2">
+                            <option value="1">High</option>
+                            <option value="2">Medium</option>
+                            <option value="3" selected>Low</option>
+                        </select>
+                    </div>
+ 
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Status</label>
+                        <select name="Status"
+                                class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2">
+                            <option value="Open" selected>Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Done">Done</option>
+                            <option value="Blocked">Blocked</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-1">Assigned To</label>   
+                    <select id="AssignedUserId" name="AssignedUserId"
+                            class="w-full rounded-lg border border-slate-300 dark:border-slate-700 dark:bg-slate-900 px-3 py-2">                              
+                    <option value="">-- Unassigned --</option>
+                        @if (Model is TaskManager.Pages.CreateTask.CreateTaskModel createTaskModel)
+                        {
+                            foreach (var user in createTaskModel.ProjectUsers)
+                            {
+                                <option value="@user.Id">@user.UserName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-4">
+                    <button type="button"
+                            class="px-4 py-2 rounded-lg border dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800"
+                            onclick="closeCreateTaskModal()">Cancel</button>
+
+                    <button type="submit"
+                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCreateTaskModal(projectId) {
+        const form = document.getElementById('createTaskForm');
+        if (form) {
+            form.setAttribute('action', `/CreateTask/CreateTask/${projectId}`);
+        }
+        document.getElementById('create-task-overlay')?.classList.remove('hidden');
+        document.getElementById('create-task-modal')?.classList.remove('hidden');
+    }
+
+    function closeCreateTaskModal() {
+        document.getElementById('create-task-overlay')?.classList.add('hidden');
+        document.getElementById('create-task-modal')?.classList.add('hidden');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeCreateTaskModal();
+    });
+</script>

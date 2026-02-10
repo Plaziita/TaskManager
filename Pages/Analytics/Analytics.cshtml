@@ -1,0 +1,256 @@
+@page "/Analytics/{handler?}"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@model AnalyticsModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Analytics";
+}
+
+<div class="flex min-h-screen">
+<main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+
+    <!-- Page Heading -->
+    <div class="border-b border-slate-200 dark:border-slate-800 dark:bg-background-dark/50">
+        <div class="flex flex-wrap items-end justify-between gap-3 px-8 py-4">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Reports & Analytics</h1>
+                <p class="text-slate-500 dark:text-slate-400 mt-1">Monitor project performance and team delivery metrics.</p>
+            </div>
+            <div class="flex gap-3">   
+                <a href="/Analytics?handler=Export"
+                class="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined mr-2 text-lg">download</span>
+                    Export Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== -->
+    <!--     FILTER TOOLBAR     -->
+    <!-- ===================== -->
+
+    <form method="get">
+    <div class="flex flex-wrap items-center justify-between gap-4 my-4 p-4 rounded-xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+
+        <!-- Range Selector -->
+        <div class="flex flex-wrap items-center gap-4">
+            <select name="Range" class="px-3 py-1.5 bg-slate-100 dark:bg-background-dark border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium">
+                <option value="7" selected="@(Model.Range=="7" ? "selected" : null)">Last 7 days</option>
+                <option value="30" selected="@(Model.Range=="30" ? "selected" : null)">Last 30 days</option>
+                <option value="90" selected="@(Model.Range=="90" ? "selected" : null)">Last 90 days</option>
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="submit"
+                    class="p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                <span class="material-symbols-outlined">filter_list</span>
+            </button>
+        </div>
+    </div>
+    </form>
+
+    <!-- ===================== -->
+    <!--        KPI CARDS       -->
+    <!-- ===================== -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
+
+        <!-- Total Tasks -->
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-start">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tasks</p>
+                <span class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">@Model.CompletedRatePct% Done</span>
+            </div>
+            <p class="text-3xl font-black mt-2">@Model.TotalTasks</p>
+            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-primary rounded-full" style="width:@Model.CompletedRatePct%"></div>
+            </div>
+        </div>
+
+        <!-- Completed -->
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-start">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Completed Tasks</p>
+                <span class="bg-green-100 dark:bg-green-900/30 text-green-600 text-[10px] font-bold px-2 py-0.5 rounded-full">Completed</span>
+            </div>
+            <p class="text-3xl font-black mt-2">@Model.CompletedTasks</p>
+            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width:@Model.CompletedRatePct%"></div>
+            </div>
+        </div>
+
+        <!-- Velocity -->
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-start">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Task Velocity</p>
+                <span class="bg-blue-100 dark:bg-blue-900/30 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">Weekly</span>
+            </div>
+            <p class="text-3xl font-black mt-2">@Model.AvgCompletedPerWeek tasks/wk</p>
+            <div class="mt-4 h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                @{
+                    var velPct = Math.Min(100, (int)Math.Round((Model.AvgCompletedPerWeek / Math.Max(1.0, Model.ProductivityMax)) * 100));
+                }
+                <div class="h-full bg-primary rounded-full" style="width:@velPct%"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--   PRODUCTIVITY CHART     -->
+    <!-- ========================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 py-4">
+
+        <div class="lg:col-span-2 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold">Weekly Productivity</h3>
+                    <p class="text-xs text-slate-500">Completed tasks per week</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="size-2 rounded-full bg-primary"></div>
+                    <span class="text-[10px] text-slate-500">Completed</span>
+                </div>
+            </div>
+
+            <div class="relative h-64 w-full mt-4">
+                <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+
+                    <!-- Line -->
+                    <path d="@Model.ProductivitySvgPath"
+                          stroke="#135bec" stroke-width="2" fill="none" />
+
+                    <!-- Area -->
+                    <path d="@($"{Model.ProductivitySvgPath} L100 100 L0 100 Z")"
+                          class="fill-primary/5" />
+
+                </svg>
+
+                <!-- Y axis -->
+                <div class="absolute -left-6 top-0 bottom-0 flex flex-col justify-between text-[10px] text-slate-400">
+                    <span>@Model.ProductivityMax</span>
+                    <span>@(Model.ProductivityMax * 3 / 4)</span>
+                    <span>@(Model.ProductivityMax / 2)</span>
+                    <span>@(Model.ProductivityMax / 4)</span>
+                    <span>0</span>
+                </div>
+
+                <!-- X axis -->
+                <div class="absolute left-0 right-0 -bottom-6 flex justify-between text-[10px] text-slate-400 px-2">
+                    @foreach (var p in Model.WeeklyProductivity)
+                    {
+                        <span>@p.Label</span>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+        <!-- DONUT -->
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl">
+            <h3 class="text-lg font-bold">Tasks Status</h3>
+            <p class="text-xs text-slate-500">Distribution of your tasks</p>
+
+            <div class="flex flex-col items-center mt-3">
+                <div class="relative size-48">
+                                        
+                    <svg class="size-full -rotate-90" viewBox="0 0 36 36">
+
+                        <!-- Fondo completo -->
+                        <circle cx="18" cy="18" r="15.9"
+                                stroke="#1e293b"
+                                stroke-width="4"
+                                fill="transparent"/>
+
+                        <!-- Tus segmentos -->
+                        @foreach (var s in Model.DonutSlices)
+                        {
+                            <circle cx="18" cy="18" r="15.9" fill="transparent"
+                                    stroke="@s.Color"
+                                    stroke-width="4"
+                                    stroke-dasharray="@s.DashArray"
+                                    stroke-dashoffset="@s.DashOffset" />
+                        }
+
+                    </svg>
+
+
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-2xl font-black">@Model.TotalTasks</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Total</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-x-8 gap-y-3 mt-6 text-xs">
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 bg-primary rounded-sm"></div> In Progress (@Model.InProgressCount)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 bg-green-500 rounded-sm"></div> Done (@Model.DoneCount)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 bg-amber-500 rounded-sm"></div> Open (@Model.OpenCount)
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="size-2.5 bg-red-500 rounded-sm"></div> Blocked (@Model.BlockedCount)
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================= -->
+    <!--   MONTHLY VELOCITY       -->
+    <!-- ========================= -->
+    <div class="py-4 pb-12">
+        <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl">
+
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-lg font-bold">Task Velocity</h3>
+                    <p class="text-xs text-slate-500">Created vs Completed (last months)</p>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="size-3 rounded bg-primary/30"></div>
+                        <span class="text-xs text-slate-500">Created</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="size-3 rounded bg-primary"></div>
+                        <span class="text-xs text-slate-500">Completed</span>
+                    </div>
+                </div>
+            </div>
+
+            @{
+                var maxBar = Math.Max(1, Model.Monthly.Select(m => Math.Max(m.Created, m.Done)).DefaultIfEmpty(1).Max());
+            }
+
+            <div class="h-64 flex items-end justify-between px-2">
+
+                @foreach (var m in Model.Monthly)
+                {
+                    var createdH = (int)Math.Round(100.0 * m.Created / maxBar);
+                    var doneH = (int)Math.Round(100.0 * m.Done / maxBar);
+
+                    <div class="flex-1 flex flex-col items-center gap-3">
+                        <div class="w-full flex justify-center items-end gap-1.5 h-48">
+                            <div class="w-6 bg-primary/30 rounded-t-sm" style="height:@createdH%"></div>
+                            <div class="w-6 bg-primary rounded-t-sm" style="height:@doneH%"></div>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-500">@m.Label</span>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    </div>
+
+</main>
+</div>

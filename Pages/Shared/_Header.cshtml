@@ -1,0 +1,61 @@
+@using System.Globalization
+@{
+    var userName = User?.Identity?.Name ?? "Usuario";
+    var initial = string.IsNullOrWhiteSpace(userName) ? "U" : userName.Trim()[0].ToString().ToUpperInvariant();
+
+    var now = DateTime.Now;
+    var culture = new CultureInfo("en-EN");
+    var fechaInicial = now.ToString("dddd, dd 'de' MMMM 'de' yyyy", culture);
+    var horaInicial = now.ToString("HH:mm:ss", culture);                       
+}
+
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-8 py-3 dark:bg-background-dark sticky top-0 z-10">
+    <div class="flex items-center gap-8 flex-1">
+        <div class="flex gap-4">
+            <h2 class="text-lg font-bold tracking-tight">
+                !Welcome, @userName!
+            </h2>
+            <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs md:text-sm">
+                <span class="material-symbols-outlined text-base md:text-lg">schedule</span>
+                <span id="header-date">@fechaInicial</span>
+                <span class="mx-1">•</span>
+                <span id="header-time" class="font-semibold">@horaInicial</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 pl-2">
+            <div class="text-right hidden md:block">
+                <p class="text-sm font-bold">@userName</p>
+                <p class="text-xs text-slate-500">Product Manager</p>
+            </div>
+            <div class="size-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[12px] font-bold">
+                @initial
+            </div>
+        </div>
+    </div>
+</header>
+
+<script>
+  (function () {
+    const $date = document.getElementById('header-date');
+    const $time = document.getElementById('header-time');
+
+    const fmtDate = new Intl.DateTimeFormat('es-ES', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+    });
+    const fmtTime = new Intl.DateTimeFormat('es-ES', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+
+    function tick() {
+      const now = new Date();
+      if ($date) $date.textContent = fmtDate.format(now);
+      if ($time) $time.textContent = fmtTime.format(now);
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>

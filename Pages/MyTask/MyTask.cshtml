@@ -1,0 +1,150 @@
+@page "{id:int}"
+@model TaskManager.Pages.MyTaskModel
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = Model.Task?.Title ?? "Task";
+}
+
+<div class="flex min-h-screen">
+<main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+
+    <div class="border-b border-slate-200 dark:border-slate-800 dark:bg-background-dark/50">
+        <div class="px-8 py-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 dark:text-white">
+                    @Model.Task.Title
+                </h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                    Task in project <span class="font-semibold text-primary">@Model.Task.Project.Name</span>
+                </p>
+            </div>
+
+            <div class="flex gap-3">
+                <a asp-page="/Board/Board"
+                    class="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-symbols-outlined text-sm align-middle">arrow_back</span>
+                    Back
+                </a>
+
+                <button type="button"
+                    class="px-3 py-1.5 text-xs rounded-lg bg-rose-600 text-white hover:bg-rose-700"
+                    onclick="openDeleteTaskModal(@Model.Task.ProjectId, @Model.Task.Id)">
+                    <span class="material-symbols-outlined align-middle text-sm">delete</span>
+                    Remove
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 px-8 py-8">
+
+        <div class="lg:col-span-2 space-y-8">
+
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+                <h2 class="text-lg font-bold mb-4">Description</h2>
+                @if (!string.IsNullOrWhiteSpace(Model.Task.Description))
+                {
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed">
+                        @Model.Task.Description
+                    </p>
+                }
+                else
+                {
+                    <p class="text-slate-500 italic">No description provided.</p>
+                }
+            </div>
+
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+                <h2 class="text-lg font-bold mb-4">Activity</h2>
+                <p class="text-slate-500 text-sm italic">No activity yet.</p>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+
+            <div class="dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4">
+                <h2 class="text-lg font-bold">Task Info</h2>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 text-sm">Status</span>
+                    <span class="px-2 py-1 text-xs rounded font-bold
+                        @(Model.Task.Status == "Done" ? "bg-green-500/20 text-green-500" :
+                          Model.Task.Status == "In Progress" ? "bg-primary/20 text-primary" :
+                          Model.Task.Status == "Blocked" ? "bg-rose-500/20 text-rose-500" :
+                          "bg-slate-500/20 text-slate-500")">
+                        @Model.Task.Status
+                    </span>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 text-sm">Priority</span>
+                    <span class="px-2 py-1 text-xs rounded font-bold
+                        @(Model.Task.Priority == 1 ? "bg-rose-500/20 text-rose-500" :
+                          Model.Task.Priority == 2 ? "bg-amber-500/20 text-amber-500" :
+                          "bg-slate-500/20 text-slate-500")">
+                        @(Model.Task.Priority == 1 ? "High" : Model.Task.Priority == 2 ? "Medium" : "Low")
+                    </span>
+                </div>
+
+
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 text-sm">Due Date</span>
+                    <span class="text-sm font-medium">
+                        @(Model.Task.DueDate?.ToString("dd MMM yyyy") ?? "—")
+                    </span>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 text-sm">Created</span>
+                    <span class="text-sm font-medium">
+                        @Model.Task.CreatedAt.ToString("dd MMM yyyy")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="deleteTaskModal" 
+     class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+     role="dialog" aria-modal="true">
+
+  <div class="dark:bg-slate-900 p-6 rounded-xl w-80 border border-slate-200 dark:border-slate-700">
+    <h2 class="text-lg font-bold mb-4">¿Eliminar tarea?</h2>
+    <p class="text-sm text-slate-500 mb-6">
+      ¿Seguro que quieres eliminar esta tarea? Esta acción no se puede deshacer.
+    </p>
+
+    <form method="post" asp-page-handler="DeleteTask" asp-antiforgery="true">
+        <input id="deleteTask_ProjectId" type="hidden" name="projectId" />
+        <input id="deleteTask_TaskId" type="hidden" name="taskId" />
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="closeDeleteTaskModal()" 
+                    class="px-3 py-1.5 text-sm rounded-lg bg-slate-200 dark:bg-slate-700">
+                Cancel
+            </button>
+
+            <button type="submit" 
+                    class="px-3 py-1.5 text-sm rounded-lg bg-rose-600 text-white hover:bg-rose-700">
+                Delete
+            </button>
+        </div>
+    </form>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+  function openDeleteTaskModal(projectId, taskId) {
+    document.getElementById("deleteTask_ProjectId").value = projectId;
+    document.getElementById("deleteTask_TaskId").value = taskId;
+    document.getElementById("deleteTaskModal").classList.remove("hidden");
+  }
+  function closeDeleteTaskModal() {
+    document.getElementById("deleteTaskModal").classList.add("hidden");
+  }
+</script>
